@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "PHP Defense (Modo Demonstração)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "PHP Defense (Com Supabase)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=SUPABASE_URL=https://SEU_PROJETO.supabase.co",
+        "--dart-define=SUPABASE_PUBLISHABLE_KEY=SUA_CHAVE_ANON_OU_PUBLISHABLE"
+      ]
+    }
+  ]
+}
