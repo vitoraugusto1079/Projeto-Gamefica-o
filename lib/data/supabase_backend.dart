@@ -56,6 +56,17 @@ class SupabaseBackend {
     }
   }
 
+  /// Reenvia o e-mail de confirmação de cadastro.
+  Future<void> resendConfirmation(String email) async {
+    try {
+      await _auth.resend(type: OtpType.signup, email: email.trim());
+    } on AuthException catch (e) {
+      throw BackendException(translateAuthError(e.message));
+    } catch (e) {
+      throw BackendException(_networkMessage(e));
+    }
+  }
+
   Future<void> signOut() async {
     try {
       await _auth.signOut();

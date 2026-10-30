@@ -129,12 +129,22 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
               ),
             ),
 
-          // 7. Painel contextual de torre selecionada no mapa
+          // 7. Painel contextual de torre selecionada (no mapa ou no catálogo)
           if (state.selectedTowerId != null)
             Positioned(
               bottom: 86,
               right: 16,
               child: _TowerDetailPanel(controller: controller),
+            )
+          else if (state.buildKind != null)
+            Positioned(
+              bottom: 86,
+              right: 16,
+              child: _BuildTowerInfoPanel(
+                kind: state.buildKind!,
+                state: state,
+                controller: controller,
+              ),
             ),
 
           // 8. Barra inferior: Catálogo de torres e controle de ondas
@@ -520,6 +530,121 @@ class _BottomCatalogBar extends StatelessWidget {
   }
 }
 
+class _BuildTowerInfoPanel extends StatelessWidget {
+  const _BuildTowerInfoPanel({
+    required this.kind,
+    required this.state,
+    required this.controller,
+  });
+
+  final TowerKind kind;
+  final MatchState state;
+  final MatchController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final cfg = towerConfig(kind);
+    final stats = cfg.level(1);
+    final canAfford = state.credits >= cfg.buildCost;
+    final previewStatus = state.previewStatus;
+
+    return CyberCard(
+      padding: const EdgeInsets.all(14),
+      backgroundColor: AppColors.surface.withValues(alpha: 0.95),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 300),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                TowerIconWidget(kind: cfg.kind, size: 36),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${cfg.name.toUpperCase()} · ${cfg.buildCost} cr',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.cyan,
+                        ),
+                      ),
+                      Text(
+                        '${cfg.entityType} · ${cfg.role}',
+                        style: const TextStyle(fontSize: 10, color: AppColors.textDim),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: controller.cancelSelection,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // O que a torre faz
+            Text(
+              cfg.description,
+              style: const TextStyle(fontSize: 11, color: AppColors.text, height: 1.3),
+            ),
+            const SizedBox(height: 8),
+
+            // Atributos iniciais (Nível 1)
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceHigh,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Column(
+                children: [
+                  _MiniRow(label: 'Especialidade', value: stats.summary),
+                  if (stats.damage > 0)
+                    _MiniRow(label: 'Dano inicial', value: stats.damage.toStringAsFixed(1)),
+                  if (stats.fireRate > 0)
+                    _MiniRow(label: 'Cadência', value: '${stats.fireRate.toStringAsFixed(1)}/s'),
+                  _MiniRow(label: 'Alcance', value: '${stats.range.toInt()} px'),
+                  if (stats.splashRadius > 0)
+                    _MiniRow(label: 'Raio de área', value: '${stats.splashRadius.toInt()} px'),
+                  if (stats.revealDuration > 0)
+                    _MiniRow(label: 'Revelação', value: '${stats.revealDuration.toStringAsFixed(1)} s'),
+                  if (stats.buffPercent > 0)
+                    _MiniRow(label: 'Bônus aliadas', value: '+${(stats.buffPercent * 100).toInt()}%'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Instrução / Status de posicionamento
+            Text(
+              !canAfford
+                  ? 'Créditos insuficientes (${state.credits}/${cfg.buildCost} cr).'
+                  : (previewStatus != null
+                      ? previewStatus.message
+                      : 'Clique no mapa para posicionar esta torre.'),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: !canAfford || (previewStatus != null && !previewStatus.isValid)
+                    ? AppColors.red
+                    : AppColors.green,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _TowerDetailPanel extends StatelessWidget {
   const _TowerDetailPanel({required this.controller});
 
@@ -541,7 +666,7 @@ class _TowerDetailPanel extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       backgroundColor: AppColors.surface.withValues(alpha: 0.95),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 290),
+        constraints: const BoxConstraints(maxWidth: 300),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -577,6 +702,13 @@ class _TowerDetailPanel extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 6),
+
+            // O que a torre faz
+            Text(
+              cfg.description,
+              style: const TextStyle(fontSize: 11, color: AppColors.text, height: 1.3),
+            ),
             const SizedBox(height: 8),
 
             // Atributos
@@ -595,6 +727,12 @@ class _TowerDetailPanel extends StatelessWidget {
                   _MiniRow(label: 'Alcance', value: '${stats.range.toInt()} px'),
                   if (stats.splashRadius > 0)
                     _MiniRow(label: 'Área', value: '${stats.splashRadius.toInt()} px'),
+                  if (stats.slowFactor > 0)
+                    _MiniRow(label: 'Lentidão', value: '${(stats.slowFactor * 100).toInt()}%'),
+                  if (stats.revealDuration > 0)
+                    _MiniRow(label: 'Revelação', value: '${stats.revealDuration.toStringAsFixed(1)} s'),
+                  if (stats.buffPercent > 0)
+                    _MiniRow(label: 'Bônus aliadas', value: '+${(stats.buffPercent * 100).toInt()}%'),
                   if (tower.buff > 0)
                     _MiniRow(label: 'Bônus de suporte', value: '+${(tower.buff * 100).toInt()}%'),
                 ],

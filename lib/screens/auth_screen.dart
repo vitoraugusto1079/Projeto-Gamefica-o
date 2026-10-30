@@ -79,6 +79,31 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
+  bool get _needsConfirmation =>
+      _errorMessage != null && _errorMessage!.contains('não confirmado');
+
+  Future<void> _resendConfirmation() async {
+    final backend = ref.read(backendProvider);
+    final email = _emailController.text.trim();
+    if (backend == null || !email.contains('@')) {
+      setState(() => _errorMessage = 'Informe o e-mail cadastrado para reenviar a confirmação.');
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      await backend.resendConfirmation(email);
+      setState(() {
+        _errorMessage = null;
+        _infoMessage = 'E-mail de confirmação reenviado para $email. '
+            'Verifique também a caixa de spam/lixo eletrônico.';
+      });
+    } on BackendException catch (e) {
+      setState(() => _errorMessage = e.message);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDemo = ref.watch(isDemoProvider);
@@ -230,6 +255,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+
+                    if (_needsConfirmation)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.mark_email_unread_outlined),
+                          label: const Text('REENVIAR E-MAIL DE CONFIRMAÇÃO'),
+                          onPressed: _loading ? null : _resendConfirmation,
                         ),
                       ),
 
