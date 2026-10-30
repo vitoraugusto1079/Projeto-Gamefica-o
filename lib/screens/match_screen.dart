@@ -688,26 +688,19 @@ class _BuildTowerInfoPanel extends StatelessWidget {
     final canAfford = state.credits >= cfg.buildCost;
     final previewStatus = state.previewStatus;
 
-    final statChips = <String>[
-      if (stats.damage > 0) 'Dano ${stats.damage.toStringAsFixed(0)}',
-      if (stats.fireRate > 0) '${stats.fireRate.toStringAsFixed(1)}/s',
-      'Alc. ${stats.range.toInt()}',
-      if (stats.buffPercent > 0) '+${(stats.buffPercent * 100).toInt()}% aliadas',
-    ];
-
     return CyberCard(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      backgroundColor: AppColors.surface.withValues(alpha: 0.94),
+      padding: const EdgeInsets.all(14),
+      backgroundColor: AppColors.surface.withValues(alpha: 0.95),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 225),
+        constraints: const BoxConstraints(maxWidth: 300),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
-                TowerIconWidget(kind: cfg.kind, size: 24),
-                const SizedBox(width: 8),
+                TowerIconWidget(kind: cfg.kind, size: 36),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -715,70 +708,76 @@ class _BuildTowerInfoPanel extends StatelessWidget {
                       Text(
                         '${cfg.name.toUpperCase()} · ${cfg.buildCost} cr',
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: AppColors.cyan,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        cfg.role,
-                        style: const TextStyle(fontSize: 9.5, color: AppColors.textDim),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        '${cfg.entityType} · ${cfg.role}',
+                        style: const TextStyle(fontSize: 10, color: AppColors.textDim),
                       ),
                     ],
                   ),
                 ),
-                InkWell(
-                  onTap: controller.cancelSelection,
-                  child: const Padding(
-                    padding: EdgeInsets.all(2),
-                    child: Icon(Icons.close, size: 15, color: AppColors.textDim),
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: controller.cancelSelection,
                 ),
               ],
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 8),
+
+            // O que a torre faz
             Text(
-              stats.summary,
-              style: const TextStyle(fontSize: 10, color: AppColors.text, height: 1.2),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+              cfg.description,
+              style: const TextStyle(fontSize: 11, color: AppColors.text, height: 1.3),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 8),
+
+            // Atributos iniciais (Nível 1)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: AppColors.surfaceHigh,
-                borderRadius: BorderRadius.circular(5),
+                borderRadius: BorderRadius.circular(6),
               ),
-              child: Text(
-                statChips.join('  ·  '),
-                style: const TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.cyan,
-                ),
-                textAlign: TextAlign.center,
+              child: Column(
+                children: [
+                  _MiniRow(label: 'Especialidade', value: stats.summary),
+                  if (stats.damage > 0)
+                    _MiniRow(label: 'Dano inicial', value: stats.damage.toStringAsFixed(1)),
+                  if (stats.fireRate > 0)
+                    _MiniRow(label: 'Cadência', value: '${stats.fireRate.toStringAsFixed(1)}/s'),
+                  _MiniRow(label: 'Alcance', value: '${stats.range.toInt()} px'),
+                  if (stats.splashRadius > 0)
+                    _MiniRow(label: 'Raio de área', value: '${stats.splashRadius.toInt()} px'),
+                  if (stats.revealDuration > 0)
+                    _MiniRow(label: 'Revelação', value: '${stats.revealDuration.toStringAsFixed(1)} s'),
+                  if (stats.buffPercent > 0)
+                    _MiniRow(label: 'Bônus aliadas', value: '+${(stats.buffPercent * 100).toInt()}%'),
+                ],
               ),
             ),
-            if (!canAfford || (previewStatus != null && !previewStatus.isValid)) ...[
-              const SizedBox(height: 4),
-              Text(
-                !canAfford
-                    ? 'Créditos insuficientes (${state.credits}/${cfg.buildCost} cr)'
-                    : previewStatus!.message,
-                style: const TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.red,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            const SizedBox(height: 8),
+
+            // Instrução / Status de posicionamento
+            Text(
+              !canAfford
+                  ? 'Créditos insuficientes (${state.credits}/${cfg.buildCost} cr).'
+                  : (previewStatus != null
+                      ? previewStatus.message
+                      : 'Clique no mapa para posicionar esta torre.'),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: !canAfford || (previewStatus != null && !previewStatus.isValid)
+                    ? AppColors.red
+                    : AppColors.green,
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -803,147 +802,150 @@ class _TowerDetailPanel extends StatelessWidget {
     final refund = controller.sim.sellValue(tower);
     final canUpgrade = controller.sim.canUpgrade(tower);
 
-    final statChips = <String>[
-      if (stats.damage > 0) 'Dano ${tower.effectiveDamage.toStringAsFixed(0)}',
-      if (stats.fireRate > 0) '${tower.effectiveFireRate.toStringAsFixed(1)}/s',
-      'Alc. ${stats.range.toInt()}',
-      if (stats.buffPercent > 0) '+${(stats.buffPercent * 100).toInt()}%',
-    ];
-
     return CyberCard(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      backgroundColor: AppColors.surface.withValues(alpha: 0.94),
+      padding: const EdgeInsets.all(14),
+      backgroundColor: AppColors.surface.withValues(alpha: 0.95),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 230),
+        constraints: const BoxConstraints(maxWidth: 300),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
-                TowerIconWidget(kind: cfg.kind, size: 24, level: level),
-                const SizedBox(width: 8),
+                TowerIconWidget(kind: cfg.kind, size: 36, level: level),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${cfg.name.toUpperCase()} (NV $level/${cfg.maxLevel})',
+                        cfg.name.toUpperCase(),
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
                           color: AppColors.cyan,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        cfg.role,
-                        style: const TextStyle(fontSize: 9.5, color: AppColors.textDim),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        'Nível $level de ${cfg.maxLevel} · ${cfg.role}',
+                        style: const TextStyle(fontSize: 10, color: AppColors.textDim),
                       ),
                     ],
                   ),
                 ),
-                InkWell(
-                  onTap: controller.cancelSelection,
-                  child: const Padding(
-                    padding: EdgeInsets.all(2),
-                    child: Icon(Icons.close, size: 15, color: AppColors.textDim),
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: controller.cancelSelection,
                 ),
               ],
-            ),
-            const SizedBox(height: 5),
-            Text(
-              stats.summary,
-              style: const TextStyle(fontSize: 10, color: AppColors.text, height: 1.2),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 5),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceHigh,
-                borderRadius: BorderRadius.circular(5),
-              ),
-              child: Text(
-                statChips.join('  ·  '),
-                style: const TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.cyan,
-                ),
-                textAlign: TextAlign.center,
-              ),
             ),
             const SizedBox(height: 6),
-            Row(
-              children: [
-                Expanded(
-                  child: next != null
-                      ? SizedBox(
-                          height: 30,
-                          child: FilledButton(
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 6),
-                              backgroundColor:
-                                  canUpgrade ? AppColors.cyan : AppColors.surfaceHigh,
-                              foregroundColor:
-                                  canUpgrade ? AppColors.background : AppColors.textDim,
-                            ),
-                            onPressed: canUpgrade ? controller.upgradeSelected : null,
-                            child: Text(
-                              'UP (${next.cost} cr)',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        )
-                      : Container(
-                          height: 30,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceHigh,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text(
-                            'NV MÁXIMO',
-                            style: TextStyle(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.green,
-                            ),
-                          ),
-                        ),
+
+            // O que a torre faz
+            Text(
+              cfg.description,
+              style: const TextStyle(fontSize: 11, color: AppColors.text, height: 1.3),
+            ),
+            const SizedBox(height: 8),
+
+            // Atributos
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceHigh,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Column(
+                children: [
+                  if (stats.damage > 0)
+                    _MiniRow(label: 'Dano efetivo', value: tower.effectiveDamage.toStringAsFixed(1)),
+                  if (stats.fireRate > 0)
+                    _MiniRow(label: 'Cadência', value: '${tower.effectiveFireRate.toStringAsFixed(1)}/s'),
+                  _MiniRow(label: 'Alcance', value: '${stats.range.toInt()} px'),
+                  if (stats.splashRadius > 0)
+                    _MiniRow(label: 'Área', value: '${stats.splashRadius.toInt()} px'),
+                  if (stats.slowFactor > 0)
+                    _MiniRow(label: 'Lentidão', value: '${(stats.slowFactor * 100).toInt()}%'),
+                  if (stats.revealDuration > 0)
+                    _MiniRow(label: 'Revelação', value: '${stats.revealDuration.toStringAsFixed(1)} s'),
+                  if (stats.buffPercent > 0)
+                    _MiniRow(label: 'Bônus aliadas', value: '+${(stats.buffPercent * 100).toInt()}%'),
+                  if (tower.buff > 0)
+                    _MiniRow(label: 'Bônus de suporte', value: '+${(tower.buff * 100).toInt()}%'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Melhoria
+            if (next != null) ...[
+              Text(
+                'Próximo nível: ${next.summary}',
+                style: const TextStyle(fontSize: 11, color: AppColors.cyan),
+              ),
+              const SizedBox(height: 6),
+              FilledButton.icon(
+                icon: const Icon(Icons.arrow_upward, size: 16),
+                label: Text('MELHORAR (${next.cost} cr)'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(38),
+                  backgroundColor: canUpgrade ? AppColors.cyan : AppColors.surfaceHigh,
+                  foregroundColor: canUpgrade ? AppColors.background : AppColors.textDim,
                 ),
-                const SizedBox(width: 6),
-                SizedBox(
-                  height: 30,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      side: const BorderSide(color: AppColors.amber),
-                    ),
-                    onPressed: controller.sellSelected,
-                    child: Text(
-                      '+$refund cr',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.amber,
-                      ),
-                    ),
+                onPressed: canUpgrade ? controller.upgradeSelected : null,
+              ),
+            ] else ...[
+              const Center(
+                child: Text(
+                  'NÍVEL MÁXIMO ATINGIDO',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.green,
                   ),
                 ),
-              ],
+              ),
+            ],
+            const SizedBox(height: 8),
+
+            // Venda (70% do investido)
+            OutlinedButton.icon(
+              icon: const Icon(Icons.sell_outlined, size: 16, color: AppColors.amber),
+              label: Text('VENDER (+$refund cr)', style: const TextStyle(color: AppColors.amber)),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(36),
+                side: const BorderSide(color: AppColors.amber),
+              ),
+              onPressed: controller.sellSelected,
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MiniRow extends StatelessWidget {
+  const _MiniRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textDim)),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.text)),
+        ],
       ),
     );
   }
