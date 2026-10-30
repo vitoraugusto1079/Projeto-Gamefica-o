@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/audio_controller.dart';
 import 'core/env.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
@@ -24,18 +25,37 @@ Future<void> main() async {
   runApp(const ProviderScope(child: PhpDefenseApp()));
 }
 
-class PhpDefenseApp extends ConsumerWidget {
+class PhpDefenseApp extends ConsumerStatefulWidget {
   const PhpDefenseApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PhpDefenseApp> createState() => _PhpDefenseAppState();
+}
+
+class _PhpDefenseAppState extends ConsumerState<PhpDefenseApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(audioControllerProvider.notifier).setTrack(BgmTrack.menu);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
 
-    return MaterialApp.router(
-      title: 'PHP Defense',
-      debugShowCheckedModeBanner: false,
-      theme: buildAppTheme(),
-      routerConfig: router,
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) {
+        ref.read(audioControllerProvider.notifier).ensurePlaying();
+      },
+      child: MaterialApp.router(
+        title: 'PHP Defense',
+        debugShowCheckedModeBanner: false,
+        theme: buildAppTheme(),
+        routerConfig: router,
+      ),
     );
   }
 }

@@ -11,9 +11,10 @@ import '../screens/ranking_screen.dart';
 import '../screens/result_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/tutorial_screen.dart';
+import 'audio_controller.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: '/',
     routes: [
       GoRoute(
@@ -58,4 +59,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  void onRouteChanged() {
+    final location = router.routerDelegate.currentConfiguration.uri.path;
+    ref.read(audioControllerProvider.notifier).syncWithRoute(location);
+  }
+
+  router.routerDelegate.addListener(onRouteChanged);
+  ref.onDispose(() => router.routerDelegate.removeListener(onRouteChanged));
+
+  return router;
 });

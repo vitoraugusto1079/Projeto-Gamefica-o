@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/audio_controller.dart';
 import '../core/theme.dart';
 import '../state/app_providers.dart';
 
@@ -13,19 +14,22 @@ class MainMenuScreen extends ConsumerWidget {
     final isDemo = ref.watch(isDemoProvider);
     final user = ref.watch(authUserProvider).value;
     final profile = ref.watch(profileProvider).value;
+    final audioState = ref.watch(audioControllerProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+        child: Stack(
+          children: [
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                   // Logo e Título
                   Center(
                     child: Container(
@@ -170,6 +174,27 @@ class MainMenuScreen extends ConsumerWidget {
               ),
             ),
           ),
+        ),
+            Positioned(
+              top: 12,
+              right: 16,
+              child: IconButton.filledTonal(
+                icon: Icon(
+                  audioState.isMuted ? Icons.volume_off : Icons.volume_up,
+                  size: 20,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.surface,
+                  foregroundColor: audioState.isMuted ? AppColors.textDim : AppColors.cyan,
+                  side: const BorderSide(color: AppColors.border, width: 1.2),
+                ),
+                tooltip: audioState.isMuted ? 'Ativar música' : 'Silenciar música',
+                onPressed: () {
+                  ref.read(audioControllerProvider.notifier).toggleMute();
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/audio_controller.dart';
 import '../core/theme.dart';
 import '../game/config/tower_config.dart';
 import '../game/flame/php_defense_game.dart';
@@ -26,6 +27,10 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
     // Cria o jogo Flame acoplado ao controller gerenciado pelo Riverpod
     final controller = ref.read(matchControllerProvider.notifier);
     _game = PhpDefenseGame(controller: controller);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(audioControllerProvider.notifier).setTrack(BgmTrack.match);
+    });
   }
 
   @override
@@ -182,14 +187,15 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
   }
 }
 
-class _TopBar extends StatelessWidget {
+class _TopBar extends ConsumerWidget {
   const _TopBar({required this.state, required this.controller});
 
   final MatchState state;
   final MatchController controller;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final audioState = ref.watch(audioControllerProvider);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -284,6 +290,23 @@ class _TopBar extends StatelessWidget {
             ],
 
             const Spacer(),
+
+            // Botão Som / Mudo
+            IconButton.filledTonal(
+              icon: Icon(
+                audioState.isMuted ? Icons.volume_off : Icons.volume_up,
+                size: 19,
+              ),
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.surface,
+                foregroundColor: audioState.isMuted ? AppColors.textDim : AppColors.cyan,
+              ),
+              onPressed: () {
+                ref.read(audioControllerProvider.notifier).toggleMute();
+              },
+              tooltip: audioState.isMuted ? 'Ativar música' : 'Silenciar música',
+            ),
+            const SizedBox(width: 6),
 
             // Botão Velocidade 1x/2x
             IconButton.filledTonal(
