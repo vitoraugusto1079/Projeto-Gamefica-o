@@ -79,12 +79,22 @@ class _MatchScreenState extends ConsumerState<MatchScreen> {
             child: _TopBar(state: state, controller: controller),
           ),
 
+          // 3b. Controles de Zoom e Câmera
+          Positioned(
+            top: 56,
+            left: 12,
+            child: SafeArea(
+              bottom: false,
+              child: _ZoomControlBar(state: state, controller: controller),
+            ),
+          ),
+
           // 4. Barra de vida do Chefe (se presente)
           if (state.bossHp != null && state.bossName != null)
             Positioned(
-              top: 60,
-              left: 40,
-              right: 40,
+              top: 108,
+              left: 24,
+              right: 24,
               child: _BossBar(name: state.bossName!, hpFraction: state.bossHp!),
             ),
 
@@ -301,6 +311,121 @@ class _TopBar extends StatelessWidget {
               tooltip: 'Pausar',
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ZoomControlBar extends StatelessWidget {
+  const _ZoomControlBar({required this.state, required this.controller});
+
+  final MatchState state;
+  final MatchController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final canZoomOut = state.zoom > MatchController.minZoom + 0.05;
+    final canZoomIn = state.zoom < MatchController.maxZoom - 0.05;
+    final isZoomed = state.zoom > 1.05;
+    final zoomLabel = '${state.zoom.toStringAsFixed(1)}x';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border, width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ZoomMiniButton(
+            icon: Icons.remove,
+            tooltip: 'Diminuir zoom',
+            onPressed: canZoomOut ? controller.zoomOut : null,
+          ),
+          const SizedBox(width: 4),
+          InkWell(
+            onTap: controller.cycleZoom,
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.zoom_in, size: 15, color: AppColors.cyan),
+                  const SizedBox(width: 4),
+                  Text(
+                    'ZOOM $zoomLabel',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.cyan,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          _ZoomMiniButton(
+            icon: Icons.add,
+            tooltip: 'Aumentar zoom',
+            onPressed: canZoomIn ? controller.zoomIn : null,
+          ),
+          if (isZoomed) ...[
+            const SizedBox(width: 6),
+            _ZoomMiniButton(
+              icon: Icons.center_focus_strong,
+              tooltip: 'Resetar zoom (visão completa)',
+              onPressed: controller.resetZoom,
+            ),
+            const SizedBox(width: 6),
+            const Padding(
+              padding: EdgeInsets.only(right: 4),
+              child: Text(
+                'Arraste p/ mover',
+                style: TextStyle(fontSize: 10, color: AppColors.textDim),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ZoomMiniButton extends StatelessWidget {
+  const _ZoomMiniButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+    return Material(
+      color: enabled ? AppColors.surfaceHigh : AppColors.background,
+      borderRadius: BorderRadius.circular(6),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(6),
+        child: Tooltip(
+          message: tooltip,
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Icon(
+              icon,
+              size: 16,
+              color: enabled ? AppColors.cyan : AppColors.textDim.withValues(alpha: 0.4),
+            ),
+          ),
         ),
       ),
     );

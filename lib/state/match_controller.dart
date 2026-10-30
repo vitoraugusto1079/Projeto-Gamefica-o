@@ -37,6 +37,8 @@ class MatchState {
     required this.message,
     required this.messageId,
     required this.damageFlash,
+    required this.zoom,
+    required this.cameraResetTick,
   });
 
   final int credits;
@@ -70,6 +72,12 @@ class MatchState {
   /// Incrementado quando o servidor sofre dano (efeito visual).
   final int damageFlash;
 
+  /// Nível de zoom da câmera (1.0 = visão completa do mapa).
+  final double zoom;
+
+  /// Incrementado quando o jogador solicita recentralizar a câmera.
+  final int cameraResetTick;
+
   bool get isOver => phase == GamePhase.victory || phase == GamePhase.defeat;
   bool get canStartWave =>
       phase == GamePhase.betweenWaves && wavesCompleted < totalWaves;
@@ -78,7 +86,7 @@ class MatchState {
         credits, integrity, wave, totalWaves, wavesCompleted, phase, speed, paused, remaining,
         buildKind, selectedTowerId, previewCell, previewStatus, towerRevision,
         bossHp == null ? null : (bossHp! * 200).round(), bossName, bossWarning, message,
-        messageId, damageFlash,
+        messageId, damageFlash, (zoom * 100).round(), cameraResetTick,
       ];
 
   @override
@@ -112,11 +120,19 @@ class MatchController extends Notifier<MatchState> {
   int _messageId = 0;
   double _messageTimer = 0;
   int _damageFlash = 0;
+  double _zoom = 1.0;
+  int _cameraResetTick = 0;
   int _matchKey = 0;
   static int _matchKeySeed = 0;
   Future<String?> _matchId = Future.value(null);
   bool _disposed = false;
 
+  static const double minZoom = 1.0;
+  static const double maxZoom = 3.0;
+  static const double zoomStep = 0.5;
+
+  double get zoom => _zoom;
+  int get cameraResetTick => _cameraResetTick;
   TowerKind? get buildKind => _buildKind;
   Cell? get previewCell => _previewCell;
   PlacementStatus? get previewStatus => (_buildKind != null && _previewCell != null)
@@ -337,6 +353,36 @@ class MatchController extends Notifier<MatchState> {
 
   void togglePause() => setPaused(!sim.paused);
 
+  void setZoom(double value) {
+    final clamped = value.clamp(minZoom, maxZoom);
+    final rounded = (clamped * 20).round() / 20.0;
+    if ((_zoom - rounded).abs() < 0.01) return;
+    _zoom = rounded;
+    if (_zoom <= 1.01) {
+      _zoom = 1.0;
+      _cameraResetTick++;
+    }
+    _publish();
+  }
+
+  void zoomIn() => setZoom(((_zoom / zoomStep).floor() + 1) * zoomStep);
+
+  void zoomOut() => setZoom(((_zoom / zoomStep).ceil() - 1) * zoomStep);
+
+  void cycleZoom() {
+    if (_zoom >= maxZoom - 0.05) {
+      resetZoom();
+    } else {
+      zoomIn();
+    }
+  }
+
+  void resetZoom() {
+    _zoom = 1.0;
+    _cameraResetTick++;
+    _publish();
+  }
+
   void restart() {
     _newMatch();
     _publish();
@@ -406,6 +452,8 @@ class MatchController extends Notifier<MatchState> {
       message: _message,
       messageId: _messageId,
       damageFlash: _damageFlash,
+      zoom: _zoom,
+      cameraResetTick: _cameraResetTick,
     );
   }
 
